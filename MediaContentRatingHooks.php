@@ -1,4 +1,6 @@
 <?php
+use MediaWiki\Title\Title;
+use MediaWiki\Context\RequestContext;
 
 use MediaWiki\MediaWikiServices;
 use PageImages\PageImageCandidate;
@@ -45,7 +47,7 @@ class MediaContentRatingHooks
 				'section' => 'rendering/content-rating',
 				'options' => $option,
 				'flatlist' => true,
-				'default' => MediaWikiServices::getInstance()->getUserOptionsLookup()->getOption($user, $name, false) ? '1' : '0',
+				'default' => \MediaWiki\MediaWikiServices::getInstance()->getUserOptionsLookup()->getOption($user, $name, false) ? '1' : '0',
 			];
 		}
 		return true;
@@ -119,7 +121,7 @@ class MediaContentRatingHooks
 			return true;
 		}
 
-		$userOptionsLookup = MediaWikiServices::getInstance()->getUserOptionsLookup();
+		$userOptionsLookup = \MediaWiki\MediaWikiServices::getInstance()->getUserOptionsLookup();
 
 		foreach (self::$msgs as $rate => $msg) {
 			$rate = strtolower($rate);
@@ -149,7 +151,7 @@ class MediaContentRatingHooks
 	 * @param array &$frameParams
 	 * @return bool Always <code>true</code>
 	 */
-	public static function onImageBeforeProduceHTML(DummyLinker &$linker, Title &$title, &$file, array &$frameParams)
+	public static function onImageBeforeProduceHTML( $unused, &$title, &$file, &$frameParams, &$handlerParams, &$time, &$res, $parser, &$query, &$widthOption )
 	{
 		$rate = self::getContentRating($title);
 		if (!empty($rate)) {
@@ -179,7 +181,7 @@ class MediaContentRatingHooks
 		if (self::isUserAllowed($imagePage->getContext()->getUser(), $rate)) {
 			return true;
 		}
-		$imagePage->setFile(MediaWikiServices::getInstance()->getRepoGroup()->findFile($mediaContentRatingWarningImage));
+		$imagePage->setFile(\MediaWiki\MediaWikiServices::getInstance()->getRepoGroup()->findFile($mediaContentRatingWarningImage));
 
 		return true;
 	}
@@ -231,7 +233,7 @@ class MediaContentRatingHooks
 	 */
 	public static function onPageImagesGetScore(PageImageCandidate $image, $position, &$score)
 	{
-		if (!empty(self::getContentRating(MediaWikiServices::getInstance()->getRepoGroup()->findFile($image->getFileName())))) {
+		if (!empty(self::getContentRating(\MediaWiki\MediaWikiServices::getInstance()->getRepoGroup()->findFile($image->getFileName())))) {
 			$score = -1000;
 		}
 
@@ -251,7 +253,7 @@ class MediaContentRatingHooks
 		} elseif ($text instanceof Title) {
 			$id = $text->getArticleID();
 		} else {
-			$title = Title::newFromText($text);
+			$title = \MediaWiki\Title\Title::newFromText($text);
 			$id = $title instanceof Title ? $title->getArticleID() : 0;
 		}
 		if ($id == 0) {
@@ -262,7 +264,7 @@ class MediaContentRatingHooks
 			return $cache[$id];
 		}
 
-		$dbr = wfGetDB(DB_REPLICA);
+		$dbr = \MediaWiki\MediaWikiServices::getInstance()->getConnectionProvider()->getReplicaDatabase();
 
 		$cache[$id] = $dbr->selectField(
 			'page_props',
@@ -287,7 +289,7 @@ class MediaContentRatingHooks
 			return false;
 		}
 
-		return (bool) MediaWikiServices::getInstance()->getUserOptionsLookup()->getOption($user, 'cr-allow-' . strtolower($rate), false);
+		return (bool) \MediaWiki\MediaWikiServices::getInstance()->getUserOptionsLookup()->getOption($user, 'cr-allow-' . strtolower($rate), false);
 	}
 
 	/**
